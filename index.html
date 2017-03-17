@@ -1,0 +1,111 @@
+<!doctype html>
+
+
+<html lang='en'>
+<head>
+  <meta charset='utf-8'>
+
+  <title>
+    Allowance
+  </title>
+  
+  <meta
+    name='description'
+    content='Allowance'
+  >
+  <meta
+    name='author'
+    content='ylixir'
+  >
+
+  <link
+    rel='stylesheet'
+    href='css/styles.css?v=1.0'
+  >
+
+</head>
+
+<body
+  onload='main()'
+>
+  <script
+    src='js/main.js'
+    type='text/javascript'
+  ></script>
+  <script
+    type='text/javascript'
+  >
+    graph_data = [
+      {
+        name: 'Aidan',
+        bars: [
+          {
+            name: 'saving',
+            start: '2016-08-21T00:00:00.000',
+            growth_seconds: 604800, //7 days in seconds
+            disbursement_seconds: 604800, //7 days in seconds
+            growth_amount: 0.75,
+            currency: 'USD',
+            used: .25,
+          },
+          {
+            name: 'gifting',
+            start: '2016-08-21T00:00:00.000',
+            growth_seconds: 604800, //7 days in seconds
+            disbursement_seconds: 604800, //7 days in seconds
+            growth_amount: 0.75,
+            currency: 'USD',
+            used: 0.00,        
+          },
+          {
+            name: 'spending',
+            start: '2016-08-21T00:00:00.000',
+            growth_seconds: 604800, //7 days in seconds
+            disbursement_seconds: 0, //7 days in seconds
+            growth_amount: 0.75,
+            currency: 'USD',
+            used: .50,        
+          },
+        ],
+      },
+      {
+        name: 'Val',
+        bars: [
+          {
+            name: 'saving',
+            start: '2016-08-21T00:00:00.000',
+            growth_seconds: 604800, //7 days in seconds
+            disbursement_seconds: 604800, //7 days in seconds
+            growth_amount: 0.75,
+            currency: 'USD',
+            used: .25,
+          },
+          {
+            name: 'gifting',
+            start: '2016-08-21T00:00:00.000',
+            growth_seconds: 604800, //7 days in seconds
+            disbursement_seconds: 604800, //7 days in seconds
+            growth_amount: 0.75,
+            currency: 'USD',
+            used: 0.00,        
+          },
+          {
+            name: 'spending',
+            start: '2016-08-21T00:00:00.000',
+            growth_seconds: 604800, //7 days in seconds
+            disbursement_seconds: 0, //7 days in seconds
+            growth_amount: 0.75,
+            currency: 'USD',
+            used: .50,        
+          },
+        ],
+      },
+    ]
+  </script>
+  
+  <canvas
+    id='graph-canvas'
+    class='graph-style'
+  ></canvas>
+</body>
+</html>
