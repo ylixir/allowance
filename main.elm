@@ -1,9 +1,11 @@
 module Main exposing (..)
 
 import Html exposing (..)
+import Html.Events exposing (onClick, onInput, onBlur)
 import Html.Attributes exposing (..)
 import Date exposing (Date, fromString, toTime)
-import Time exposing (Time, second, inSeconds)
+import Time exposing (Time, second, hour, inSeconds)
+import Task exposing (perform)
 
 
 main : Program Never Model Msg
@@ -21,11 +23,12 @@ main =
 
 
 type alias Bar =
-    { name : String
+    { id : Int
+    , name : String
     , start : Result String Date
-    , growthTime : Time
-    , growthInterval : Maybe Time
-    , growthAmount : Float
+    , rate : Time
+    , interval : Time
+    , amount : Float
     }
 
 
@@ -34,41 +37,50 @@ type alias Bar =
 --, currency : String
 
 
-type alias BarGroup =
-    { name : String, bars : List Bar }
+type alias Group =
+    { id : Int
+    , name : String
+    , editing : Bool
+    , bars : List Bar
+    }
 
 
 type alias Model =
-    { groups : List BarGroup
-    , time : Maybe Time
+    { time : Maybe Time
+    , uid : Int
+    , groups : List Group
     }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model
-        [ (BarGroup "Aidan"
-            [ Bar
-                "Spending"
-                (fromString "2017-03-18")
-                (604800 * second)
-                Nothing
-                0.75
+    ( emptyModel, Task.perform Tick Time.now )
+
+
+emptyModel : Model
+emptyModel =
+    Model Nothing 0 []
+
+
+testModel : Model
+testModel =
+    Model Nothing
+        8
+        [ Group 0
+            "Aidan"
+            False
+            [ Bar 1 "Spending" (fromString "2017-03-11") (604800 * second) 0 1
+            , Bar 2 "Saving" (fromString "2017-03-11") (604800 * second) (7 * 24 * second) 1
+            , Bar 3 "Giving" (fromString "2017-03-11") (604800 * second) (24 * hour) 1
             ]
-          )
-        , (BarGroup "Val"
-            [ Bar
-                "Saving"
-                (fromString "2017-03-12")
-                (604800 * second)
-                (Just (604800 * second))
-                0.75
+        , Group 4
+            "Val"
+            False
+            [ Bar 5 "Spending" (fromString "2017-03-11") (604800 * second) 0 2.0
+            , Bar 6 "Saving" (fromString "2017-03-11") (604800 * second) (604800 * second) 2.0
+            , Bar 7 "Giving" (fromString "2017-03-11") (604800 * second) (24 * hour) 2.0
             ]
-          )
         ]
-        Nothing
-    , Cmd.none
-    )
 
 
 
@@ -77,13 +89,76 @@ init =
 
 type Msg
     = Tick Time
+    | FirstGroup
+    | AddGroup Int
+    | ChangeGroupName Int String
+    | EditGroupName Int
+    | StopGroupNameEdit Int
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Tick time ->
-            ( { model | time = Just time }, Cmd.none )
+            { model | time = Just time } ! []
+
+        FirstGroup ->
+            let
+                newGroup id =
+                    Group id "" True []
+            in
+                { model | uid = model.uid + 1, groups = (newGroup model.uid) :: model.groups } ! []
+
+        AddGroup id ->
+            let
+                newGroup id =
+                    Group id "" True []
+
+                insertGroup a b =
+                    if a.id == id then
+                        a :: newGroup model.uid :: b
+                    else
+                        a :: b
+            in
+                { model
+                    | uid = model.uid + 1
+                    , groups =
+                        if model.groups == [] then
+                            [ newGroup model.uid ]
+                        else
+                            List.foldr insertGroup [] model.groups
+                }
+                    ! []
+
+        ChangeGroupName id name ->
+            let
+                updateName a =
+                    if a.id == id then
+                        { a | name = name }
+                    else
+                        a
+            in
+                { model | groups = List.map updateName model.groups } ! []
+
+        EditGroupName id ->
+            let
+                updateGroup a =
+                    if a.id == id || a.name == "" then
+                        { a | editing = True }
+                    else
+                        { a | editing = False }
+            in
+                { model | groups = List.map updateGroup model.groups } ! []
+
+        StopGroupNameEdit id ->
+            let
+                updateGroup a =
+                    if a.id == id && a.name /= "" then
+                        { a | editing = False }
+                    else
+                        a
+            in
+                { model | groups = List.map updateGroup model.groups } ! []
 
 
 
@@ -99,23 +174,42 @@ subscriptions model =
 -- VIEW
 
 
+topLevelStyle : Attribute msg
+topLevelStyle =
+    style [ ( "margin", "0.5em" ) ]
+
+
 view : Model -> Html Msg
 view model =
-    div [] <|
-        List.map
-            (viewGroup model.time)
-            model.groups
+    div []
+        (div [ topLevelStyle ] [ button [ onClick FirstGroup ] [ text "+" ] ]
+            :: List.map (viewGroup model.time) model.groups
+        )
 
 
-viewGroup : Maybe Time -> BarGroup -> Html msg
+viewGroup : Maybe Time -> Group -> Html Msg
 viewGroup time group =
-    div
-        [ style
-            [ ( "border-style", "groove" )
-            , ( "margin", "0.5em" )
+    div [ topLevelStyle ]
+        [ div [ style [ ( "border-style", "groove" ) ] ]
+            ((if group.editing == False then
+                span [ onClick (EditGroupName group.id) ] [ text group.name ]
+              else
+                input
+                    [ placeholder "Name"
+                    , onInput (ChangeGroupName group.id)
+                    , onBlur (StopGroupNameEdit group.id)
+                    , value group.name
+                    , autofocus True
+                    ]
+                    []
+             )
+                :: (List.map (viewBar time) group.bars)
+            )
+        , div []
+            [ button [ onClick (AddGroup group.id) ] [ text "+" ]
+            , button [] [ text "-" ]
             ]
         ]
-        ((text group.name) :: (List.map (viewBar time) group.bars))
 
 
 viewBar : Maybe Time -> Bar -> Html msg
@@ -137,12 +231,11 @@ viewBar time bar =
                     ( message, 0 )
 
         interval =
-            case bar.growthInterval of
-                Just interval ->
-                    interval
-
-                Nothing ->
-                    bar.growthTime / bar.growthAmount / 100
+            if bar.interval == 0 then
+                --make interval the time for one cent
+                bar.rate / bar.amount / 100
+            else
+                bar.interval
 
         appliedTime =
             if (floor interval) == 0 then
@@ -165,7 +258,7 @@ viewBar time bar =
                         , ( "height", "1em" )
                         ]
                     ]
-                    [ (appliedTime / bar.growthTime * bar.growthAmount * 100)
+                    [ (appliedTime / bar.rate * bar.amount * 100)
                         |> floor
                         |> toFloat
                         |> (\n -> n / 100)
