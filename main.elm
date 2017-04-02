@@ -149,21 +149,6 @@ testModel =
 -- UPDATE
 
 
-type Msg
-    = Tick Time
-    | FirstGroup
-    | FirstBar Int
-    | AddGroup Int
-    | RemoveGroup Int
-    | EditGroupName Int String
-    | AddBar Int Int
-    | RemoveBar Int Int
-    | EditBar Int Int
-    | FinishBarEdit Int Int
-    | UpdateBarName Int Int String
-    | UpdateBarStart Int Int String
-
-
 dateToText : Date -> String
 dateToText date =
     (toString (year date)) ++ "-" ++ (numMonth date) ++ "-" ++ (toString (day date))
@@ -207,6 +192,22 @@ numMonth date =
 
         Date.Dec ->
             "12"
+
+
+type Msg
+    = Tick Time
+    | FirstGroup
+    | FirstBar Int
+    | AddGroup Int
+    | RemoveGroup Int
+    | EditGroupName Int String
+    | AddBar Int Int
+    | RemoveBar Int Int
+    | EditBar Int Int
+    | FinishBarEdit Int Int
+    | UpdateBarName Int Int String
+    | UpdateBarStart Int Int String
+    | UpdateBarAmount Int Int String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -354,6 +355,36 @@ update msg model =
             in
                 { model | groups = List.map updateGroup model.groups } ! []
 
+        UpdateBarAmount groupID barID amount ->
+            let
+                updateGroup : Group -> Group
+                updateGroup group =
+                    let
+                        updateBar : Bar -> Bar
+                        updateBar bar =
+                            if bar.id == barID then
+                                { bar
+                                    | amountPerTime =
+                                        amount
+                                            |> String.toFloat
+                                            |> Result.withDefault
+                                                (bar.amountPerTime
+                                                    |> toFloat
+                                                    |> (\n -> n / toFloat (10 ^ bar.precision))
+                                                )
+                                            |> (*) (toFloat (10 ^ bar.precision))
+                                            |> truncate
+                                }
+                            else
+                                bar
+                    in
+                        if group.id == groupID then
+                            { group | bars = List.map updateBar group.bars }
+                        else
+                            group
+            in
+                { model | groups = List.map updateGroup model.groups } ! []
+
 
 
 -- SUBSCRIPTIONS
@@ -432,16 +463,19 @@ view model =
                                                     ]
                                                 , div []
                                                     [ text "rate"
-                                                    , input [ defaultValue ((toString (bar.amountPerTime // 10 ^ bar.precision)) ++ "." ++ (toString (bar.amountPerTime % 10 ^ bar.precision))) ] []
+                                                    , input
+                                                        [ defaultValue ((toString (bar.amountPerTime // 10 ^ bar.precision)) ++ "." ++ (toString (bar.amountPerTime % 10 ^ bar.precision)))
+                                                        , onInput (UpdateBarAmount group.id bar.id)
+                                                        ]
+                                                        []
                                                     , text (bar.currency ++ " per ")
                                                     , input
                                                         [ placeholder "1d 1h 3m 1s"
-                                                        , value (timeToString bar.timePerAmount)
+                                                        , defaultValue (timeToString bar.timePerAmount)
                                                         ]
                                                         []
                                                     ]
                                                 , div [] [ text "interval", input [ defaultValue (timeToString bar.interval) ] [] ]
-                                                , div [] [ text "amount", input [] [] ]
                                                 , div [] [ button [ onClick (FinishBarEdit group.id bar.id) ] [ text "✓" ] ]
                                                 ]
                                             ]
