@@ -281,7 +281,7 @@ viewBar route bar time =
                     [ style
                         [ ( "background-color", "green" )
                         , ( "height", "0.2em" )
-                        , ( "width", (toString (toFloat (10 ^ bar.precision) * (diff - appliedTime) / interval)) ++ "%" )
+                        , ( "width", (toString (100 * (diff - appliedTime) / interval)) ++ "%" )
                         ]
                     ]
                     []

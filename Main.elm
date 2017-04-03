@@ -42,7 +42,7 @@ testModel =
             0
             "Aidan"
             [ Bar 0 "Spending" (Date.fromString "2017-03-11") (604800 * second) 0 100 "USD" 2 False
-            , Bar 1 "Saving" (Date.fromString "2017-03-11") (604800 * second) (7 * 24 * second) 100 "USD" 2 False
+            , Bar 1 "Saving" (Date.fromString "2017-03-11") (604800 * second) (7 * 24 * hour) 100 "USD" 2 False
             , Bar 2 "Giving" (Date.fromString "2017-03-11") (604800 * second) (24 * hour) 100 "USD" 2 False
             ]
             3
@@ -168,8 +168,8 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    --Time.every second Tick
-    Sub.none
+    --Sub.none
+    Time.every second Tick
 
 
 
