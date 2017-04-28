@@ -1,9 +1,14 @@
 <!DOCTYPE HTML>
-<div id="main"></div>
-<script src="Main.js"></script>
-<script>
-    var node = document.getElementById('main');
-    var app = Elm.Main.fullscreen(node);
-    // Note: if your Elm module is named "MyThing.Root" you
-    // would call "Elm.MyThing.Root.embed(node)" instead.
-</script>
+<meta charset="UTF-8">
+<div>
+    <script src="Main.js"></script>
+    <script>
+        //localStorage.getItem returns null if this doesn't exist while JSON.parse of null returns null
+        var getStoredState = JSON.parse(localStorage.getItem('allowance-model'))
+        var setStoredState = (state) => localStorage.setItem('allowance-model', JSON.stringify(state))
+
+        var app = Elm.Main.fullscreen(getStoredState)
+        app.ports.saveModel.subscribe(setStoredState)
+
+    </script>
+</div>

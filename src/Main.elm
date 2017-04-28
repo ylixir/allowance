@@ -1,4 +1,4 @@
-module Main exposing (..)
+port module Main exposing (..)
 
 import Html exposing (..)
 import Html.Events exposing (onClick, onInput, onBlur)
@@ -10,12 +10,12 @@ import Date exposing (Date, fromString, toTime, year, month, day)
 import Types exposing (..)
 
 
-main : Program Never Model Msg
+main : Program (Maybe JsonModel) Model Msg
 main =
-    Html.program
+    Html.programWithFlags
         { init = init
         , view = view
-        , update = update
+        , update = updateWithStorage
         , subscriptions = subscriptions
         }
 
@@ -58,13 +58,30 @@ testModel =
         0
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( testModel, Task.perform Tick Time.now )
+init : Maybe JsonModel -> ( Model, Cmd Msg )
+init savedModel =
+    ( jsonToModel <| Maybe.withDefault (modelToJson emptyModel) savedModel, Task.perform Tick Time.now )
 
 
 
 -- UPDATE
+
+
+port saveModel : JsonModel -> Cmd msg
+
+
+updateWithStorage : Msg -> Model -> ( Model, Cmd Msg )
+updateWithStorage msg model =
+    let
+        ( newModel, cmds ) =
+            update msg model
+    in
+        ( newModel
+        , Cmd.batch
+            [ (saveModel (modelToJson newModel))
+            , cmds
+            ]
+        )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
