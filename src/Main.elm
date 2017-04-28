@@ -31,7 +31,7 @@ emptyGroup id =
 
 emptyModel : Model
 emptyModel =
-    Model Nothing 0 []
+    Model Nothing 0 [] 0
 
 
 testModel : Model
@@ -55,6 +55,7 @@ testModel =
             ]
             3
         ]
+        0
 
 
 init : ( Model, Cmd Msg )

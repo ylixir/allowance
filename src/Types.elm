@@ -29,6 +29,7 @@ type alias Model =
     { time : Maybe Time
     , uid : Int
     , groups : List Group
+    , version : Int
     }
 
 
