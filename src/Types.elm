@@ -1,7 +1,24 @@
 module Types exposing (..)
 
-import Time exposing (Time)
-import Date exposing (..)
+import Time exposing (Time, hour, second)
+import Date exposing (Date)
+import Set exposing (..)
+
+
+type Indexed a
+    = Indexed a Int
+
+
+listIndices : List a -> List Int
+listIndices l =
+    List.length l
+        |> (-) 1
+        |> List.range 0
+
+
+indexedList : List a -> List (Indexed a)
+indexedList l =
+    List.map2 Indexed l (listIndices l)
 
 
 type alias JsonStartDate =
@@ -10,7 +27,11 @@ type alias JsonStartDate =
     }
 
 
-dateToJson : Result String Date -> JsonStartDate
+type alias NativeStartDate =
+    Result String Date
+
+
+dateToJson : NativeStartDate -> JsonStartDate
 dateToJson dateResult =
     case dateResult of
         Ok date ->
@@ -24,7 +45,7 @@ dateToJson dateResult =
             }
 
 
-jsonToDate : JsonStartDate -> Result String Date
+jsonToDate : JsonStartDate -> NativeStartDate
 jsonToDate json =
     case json.ok of
         True ->
@@ -39,104 +60,90 @@ jsonToDate json =
             Result.Err json.string
 
 
+type alias Bar a b =
+    { name : String
+    , id : Int
+    , startDate : a
+    , timePerAmount : Time
+    , interval : Time
+    , amountPerTime : Int
+    , currency : String
+    , precision : Int
+    , edit : Bool
+    , groups : b
+    }
+
+
+type alias NativeBar =
+    Bar NativeStartDate (Set String)
+
+
 type alias JsonBar =
-    { id : Int
-    , name : String
-    , startDate : JsonStartDate
-    , timePerAmount : Time
-    , interval : Time
-    , amountPerTime : Int
-    , currency : String
-    , precision : Int
-    , edit : Bool
-    }
+    Bar JsonStartDate (List String)
 
 
-type alias Bar =
-    { id : Int
-    , name : String
-    , startDate : Result String Date
-    , timePerAmount : Time
-    , interval : Time
-    , amountPerTime : Int
-    , currency : String
-    , precision : Int
-    , edit : Bool
-    }
+emptyBar : Int -> Bar NativeStartDate (Set String)
+emptyBar id =
+    Bar "" id (Result.Err "uninitialized") 0 0 0 "USD" 2 False Set.empty
 
 
-barToJson : Bar -> JsonBar
+barToJson : NativeBar -> JsonBar
 barToJson bar =
-    { bar | startDate = dateToJson bar.startDate }
+    { bar | groups = (Set.toList bar.groups), startDate = dateToJson bar.startDate }
 
 
-jsonToBar : JsonBar -> Bar
+jsonToBar : JsonBar -> NativeBar
 jsonToBar bar =
-    { bar | startDate = jsonToDate bar.startDate }
+    { bar | groups = Set.fromList bar.groups, startDate = jsonToDate bar.startDate }
 
 
-type alias JsonGroup =
-    { id : Int
-    , name : String
-    , bars : List JsonBar
-    , uid : Int
-    }
-
-
-type alias Group =
-    { id : Int
-    , name : String
-    , bars : List Bar
-    , uid : Int
-    }
-
-
-groupToJson : Group -> JsonGroup
-groupToJson group =
-    { group | bars = List.map barToJson group.bars }
-
-
-jsonToGroup : JsonGroup -> Group
-jsonToGroup group =
-    { group | bars = List.map jsonToBar group.bars }
-
-
-type alias JsonModel =
+type alias Model a =
     { time : Maybe Time
-    , uid : Int
-    , groups : List JsonGroup
+    , bars : List a
     , version : Int
+    , uuid : Int
     }
 
 
-type alias Model =
-    { time : Maybe Time
-    , uid : Int
-    , groups : List Group
-    , version : Int
-    }
+emptyModel : Model NativeBar
+emptyModel =
+    Model Nothing [] 0 0
 
 
-modelToJson : Model -> JsonModel
+testModel : Model NativeBar
+testModel =
+    Model Nothing
+        (List.map
+            (\bar -> bar <| Set.singleton "Aidan")
+            [ Bar "Spending" 0 (Date.fromString "2017-03-11") (604800 * second) 0 100 "USD" 2 False
+            , Bar "Saving" 1 (Date.fromString "2017-03-11") (604800 * second) (7 * 24 * hour) 100 "USD" 2 False
+            , Bar "Giving" 2 (Date.fromString "2017-03-11") (604800 * second) (24 * hour) 100 "USD" 2 False
+            ]
+            ++ List.map (\bar -> bar <| Set.singleton "Val")
+                [ Bar "Spending" 3 (Date.fromString "2017-03-11") (604800 * second) 0 200 "USD" 2 False
+                , Bar "Saving" 4 (Date.fromString "2017-03-11") (604800 * second) (604800 * second) 200 "USD" 2 False
+                , Bar "Giving" 5 (Date.fromString "2017-03-11") (604800 * second) (24 * hour) 200 "USD" 2 False
+                ]
+        )
+        0
+        6
+
+
+modelToJson : Model NativeBar -> Model JsonBar
 modelToJson model =
-    { model | groups = List.map groupToJson model.groups }
+    { model | bars = List.map barToJson model.bars }
 
 
-jsonToModel : JsonModel -> Model
+jsonToModel : Model JsonBar -> Model NativeBar
 jsonToModel model =
-    { model | groups = List.map jsonToGroup model.groups }
+    { model | bars = List.map jsonToBar model.bars }
 
 
 type Msg
     = Tick Time
-    | FirstGroup
-    | FirstBar Int
-    | AddGroup Int
-    | RemoveGroup Int
-    | EditGroupName Int String
-    | AddBar Int Int
-    | RemoveBar Int Int
-    | UpdateBar Int Int BarMsg
+    | AddBar
+    | RemoveBar Int
+    | UpdateBar Int BarMsg
 
 
 type BarMsg

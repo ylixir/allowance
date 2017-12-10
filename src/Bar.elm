@@ -9,14 +9,6 @@ import Date exposing (..)
 
 
 --model
-
-
-emptyBar : Int -> Bar
-emptyBar id =
-    Bar id "" (Result.Err "uninitialized") 0 0 0 "USD" 2 False
-
-
-
 --update
 
 
@@ -91,7 +83,7 @@ dateToString date =
         (toString (year date)) ++ "-" ++ (dateToMonthString date) ++ "-" ++ (toString (day date))
 
 
-updateBar : BarMsg -> Bar -> Bar
+updateBar : BarMsg -> NativeBar -> NativeBar
 updateBar msg bar =
     case msg of
         BeginEdit ->
@@ -133,31 +125,32 @@ updateBar msg bar =
 
 timeToString : Time -> String
 timeToString time =
-    String.join " "
-        [ time
-            |> Time.inHours
-            |> (\n -> n / 24)
-            |> truncate
-            |> (\n -> (toString n) ++ "d")
-        , time
-            |> Time.inHours
-            |> truncate
-            |> (\n -> n % 24)
-            |> (\n -> (toString n) ++ "h")
-        , time
-            |> Time.inMinutes
-            |> truncate
-            |> (\n -> n % 60)
-            |> (\n -> (toString n) ++ "m")
-        , time
-            |> Time.inSeconds
-            |> truncate
-            |> (\n -> n % 60)
-            |> (\n -> (toString n) ++ "s")
-        ]
+    String.join " " <|
+        List.filter (\s -> not (String.startsWith "0" s))
+            [ time
+                |> Time.inHours
+                |> (\n -> n / 24)
+                |> truncate
+                |> (\n -> (toString n) ++ "d")
+            , time
+                |> Time.inHours
+                |> truncate
+                |> (\n -> n % 24)
+                |> (\n -> (toString n) ++ "h")
+            , time
+                |> Time.inMinutes
+                |> truncate
+                |> (\n -> n % 60)
+                |> (\n -> (toString n) ++ "m")
+            , time
+                |> Time.inSeconds
+                |> truncate
+                |> (\n -> n % 60)
+                |> (\n -> (toString n) ++ "s")
+            ]
 
 
-viewSettings : (BarMsg -> Msg) -> Bar -> Html Msg
+viewSettings : (BarMsg -> Msg) -> NativeBar -> Html Msg
 viewSettings route bar =
     case bar.edit of
         False ->
@@ -233,7 +226,7 @@ viewSettings route bar =
                     ]
 
 
-viewBar : (BarMsg -> Msg) -> Bar -> Maybe Time -> Html Msg
+viewBar : (BarMsg -> Msg) -> NativeBar -> Maybe Time -> Html Msg
 viewBar route bar time =
     let
         ( start, diff ) =
