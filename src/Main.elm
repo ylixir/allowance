@@ -65,18 +65,15 @@ update msg model =
         AddBar ->
             { model | bars = (emptyBar model.uuid) :: model.bars, uuid = model.uuid + 1 } ! []
 
-        RemoveBar barId ->
-            { model | bars = List.filter (\b -> b.id /= barId) model.bars } ! []
-
         UpdateBar barId msg ->
             { model
                 | bars =
-                    List.map
+                    List.filterMap
                         (\b ->
                             if b.id == barId then
                                 updateBar msg b
                             else
-                                b
+                                Just b
                         )
                         model.bars
             }
@@ -125,46 +122,33 @@ topLevelStyle =
 view : Model NativeBar -> Html Msg
 view model =
     div [] <|
-        Dict.foldl
-            (viewGroup model.time)
-            []
-            (List.foldl
-                updateGroupsWithBar
-                Dict.empty
-                model.bars
-            )
+        div [ topLevelStyle ] [ button [ onClick AddBar ] [ text "+" ] ]
+            :: Dict.foldl
+                (viewGroup model.time)
+                []
+                (List.foldl
+                    updateGroupsWithBar
+                    Dict.empty
+                    model.bars
+                )
 
 
 viewBars : List NativeBar -> Maybe Time -> List (Html Msg)
 viewBars bars time =
-    div [ topLevelStyle ] [ button [ onClick AddBar ] [ text "+" ] ]
-        :: (List.map
-                (\b ->
-                    div [ topLevelStyle ]
-                        [ viewBar (UpdateBar b.id) b time
-                        , div []
-                            [ button [ onClick (UpdateBar b.id BeginEdit) ] [ text "⚙" ]
-                            , button [ onClick (AddBar) ] [ text "+" ]
-                            , button [ onClick (RemoveBar b.id) ] [ text "-" ]
-                            ]
-                        ]
-                )
-                bars
-           )
+    List.map
+        (\b ->
+            div [ topLevelStyle ]
+                [ viewBar (UpdateBar b.id) b time
+                ]
+        )
+        bars
 
 
 viewGroup : Maybe Time -> String -> List NativeBar -> List (Html Msg) -> List (Html Msg)
 viewGroup time name bars previous =
     div [ topLevelStyle ]
         [ div [ style [ ( "border-style", "groove" ) ] ]
-            ((input
-                [ placeholder "Name"
-                  --, onInput (EditGroupName group.id)
-                , value name
-                , autofocus True
-                ]
-                []
-             )
+            ((div [] [ text name ])
                 :: viewBars bars time
             )
         ]

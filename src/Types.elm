@@ -60,6 +60,26 @@ jsonToDate json =
             Result.Err json.string
 
 
+type alias BarEdit =
+    { newGroup : String
+    }
+
+
+defaultFreshBarEdit : Maybe BarEdit -> BarEdit
+defaultFreshBarEdit =
+    Maybe.withDefault freshBarEdit
+
+
+freshBarEdit : BarEdit
+freshBarEdit =
+    BarEdit ""
+
+
+barEditGroup : BarEdit -> String
+barEditGroup { newGroup } =
+    newGroup
+
+
 type alias Bar a b =
     { name : String
     , id : Int
@@ -69,7 +89,7 @@ type alias Bar a b =
     , amountPerTime : Int
     , currency : String
     , precision : Int
-    , edit : Bool
+    , edit : Maybe BarEdit
     , groups : b
     }
 
@@ -84,7 +104,7 @@ type alias JsonBar =
 
 emptyBar : Int -> Bar NativeStartDate (Set String)
 emptyBar id =
-    Bar "" id (Result.Err "uninitialized") 0 0 0 "USD" 2 False Set.empty
+    Bar "" id (Result.Err "uninitialized") 0 0 0 "USD" 2 (Just freshBarEdit) Set.empty
 
 
 barToJson : NativeBar -> JsonBar
@@ -115,14 +135,14 @@ testModel =
     Model Nothing
         (List.map
             (\bar -> bar <| Set.singleton "Aidan")
-            [ Bar "Spending" 0 (Date.fromString "2017-03-11") (604800 * second) 0 100 "USD" 2 False
-            , Bar "Saving" 1 (Date.fromString "2017-03-11") (604800 * second) (7 * 24 * hour) 100 "USD" 2 False
-            , Bar "Giving" 2 (Date.fromString "2017-03-11") (604800 * second) (24 * hour) 100 "USD" 2 False
+            [ Bar "Spending" 0 (Date.fromString "2017-03-11") (604800 * second) 0 100 "USD" 2 Nothing
+            , Bar "Saving" 1 (Date.fromString "2017-03-11") (604800 * second) (7 * 24 * hour) 100 "USD" 2 Nothing
+            , Bar "Giving" 2 (Date.fromString "2017-03-11") (604800 * second) (24 * hour) 100 "USD" 2 Nothing
             ]
             ++ List.map (\bar -> bar <| Set.singleton "Val")
-                [ Bar "Spending" 3 (Date.fromString "2017-03-11") (604800 * second) 0 200 "USD" 2 False
-                , Bar "Saving" 4 (Date.fromString "2017-03-11") (604800 * second) (604800 * second) 200 "USD" 2 False
-                , Bar "Giving" 5 (Date.fromString "2017-03-11") (604800 * second) (24 * hour) 200 "USD" 2 False
+                [ Bar "Spending" 3 (Date.fromString "2017-03-11") (604800 * second) 0 200 "USD" 2 Nothing
+                , Bar "Saving" 4 (Date.fromString "2017-03-11") (604800 * second) (604800 * second) 200 "USD" 2 Nothing
+                , Bar "Giving" 5 (Date.fromString "2017-03-11") (604800 * second) (24 * hour) 200 "USD" 2 Nothing
                 ]
         )
         0
@@ -142,13 +162,17 @@ jsonToModel model =
 type Msg
     = Tick Time
     | AddBar
-    | RemoveBar Int
     | UpdateBar Int BarMsg
 
 
 type BarMsg
     = BeginEdit
     | FinishEdit
+    | RemoveBar
+      -- new group comes from the edit: BarEdit field
+    | AddGroup
+    | UpdateEditGroup String
+    | RemoveGroup String
     | UpdateName String
     | UpdateStart String
     | UpdateAmount String

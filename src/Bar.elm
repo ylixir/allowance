@@ -6,6 +6,8 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Time exposing (..)
 import Date exposing (..)
+import Set exposing (..)
+import Json.Decode as Json
 
 
 --model
@@ -83,40 +85,58 @@ dateToString date =
         (toString (year date)) ++ "-" ++ (dateToMonthString date) ++ "-" ++ (toString (day date))
 
 
-updateBar : BarMsg -> NativeBar -> NativeBar
+updateBar : BarMsg -> NativeBar -> Maybe NativeBar
 updateBar msg bar =
     case msg of
         BeginEdit ->
-            { bar | edit = True }
+            Just { bar | edit = Just freshBarEdit }
 
         FinishEdit ->
-            { bar | edit = False }
+            Just { bar | edit = Nothing }
+
+        RemoveBar ->
+            Nothing
+
+        AddGroup ->
+            case (defaultFreshBarEdit bar.edit).newGroup of
+                "" ->
+                    Just bar
+
+                g ->
+                    Just { bar | edit = Just freshBarEdit, groups = Set.insert g bar.groups }
+
+        UpdateEditGroup g ->
+            Just { bar | edit = Just <| BarEdit g }
+
+        RemoveGroup g ->
+            Just { bar | groups = Set.remove g bar.groups }
 
         UpdateName name ->
-            { bar | name = name }
+            Just { bar | name = name }
 
         UpdateStart start ->
-            { bar | startDate = fromString start }
+            Just { bar | startDate = fromString start }
 
         UpdateAmount amount ->
-            { bar
-                | amountPerTime =
-                    amount
-                        |> String.toFloat
-                        |> Result.withDefault
-                            (bar.amountPerTime
-                                |> toFloat
-                                |> (\n -> n / toFloat (10 ^ bar.precision))
-                            )
-                        |> (*) (toFloat (10 ^ bar.precision))
-                        |> truncate
-            }
+            Just
+                { bar
+                    | amountPerTime =
+                        amount
+                            |> String.toFloat
+                            |> Result.withDefault
+                                (bar.amountPerTime
+                                    |> toFloat
+                                    |> (\n -> n / toFloat (10 ^ bar.precision))
+                                )
+                            |> (*) (toFloat (10 ^ bar.precision))
+                            |> truncate
+                }
 
         UpdateRate rate ->
-            { bar | timePerAmount = stringToTime rate }
+            Just { bar | timePerAmount = stringToTime rate }
 
         UpdateInterval interval ->
-            { bar | interval = stringToTime interval }
+            Just { bar | interval = stringToTime interval }
 
 
 
@@ -150,84 +170,97 @@ timeToString time =
             ]
 
 
-viewSettings : (BarMsg -> Msg) -> NativeBar -> Html Msg
-viewSettings route bar =
-    case bar.edit of
-        False ->
-            div [] []
+onEnter : a -> Attribute a
+onEnter msg =
+    let
+        isEnter code =
+            if code == 13 then
+                Json.succeed msg
+            else
+                Json.fail "not Enter"
+    in
+        on "keyup" (Json.andThen isEnter keyCode)
 
-        True ->
-            let
-                dateResultToString : Result String Date -> Result String String
-                dateResultToString date =
-                    case date of
-                        Ok date ->
-                            Ok (dateToString date)
 
-                        Err msg ->
-                            Err ""
-            in
-                div
-                    [ style
-                        [ ( "top", "0" )
-                        , ( "left", "0" )
-                        , ( "height", "0" )
-                        , ( "height", "100%" )
-                        , ( "width", "100%" )
-                        , ( "background-color", "rgba(0,0,0,.75)" )
-                        , ( "position", "fixed" )
-                        , ( "display", "flex" )
-                        , ( "justify-content", "center" )
-                        , ( "align-items", "center" )
-                        ]
+renderGroupEdit : (BarMsg -> Msg) -> String -> Set String -> Html Msg
+renderGroupEdit route new groups =
+    div []
+        ([ div [] [ text "groups" ]
+         , input
+            [ placeholder "new group"
+            , value new
+            , onInput (\n -> route <| UpdateEditGroup n)
+            , onEnter (route AddGroup)
+            ]
+            []
+         ]
+            ++ (groups
+                    |> Set.toList
+                    |> List.map (\g -> div [] [ text g, button [ onClick (route (RemoveGroup g)) ] [ text "♲" ] ])
+               )
+        )
+
+
+renderSettings : (BarMsg -> Msg) -> NativeBar -> Html Msg
+renderSettings route bar =
+    let
+        dateResultToString : Result String Date -> Result String String
+        dateResultToString date =
+            case date of
+                Ok date ->
+                    Ok (dateToString date)
+
+                Err msg ->
+                    Err ""
+    in
+        div
+            [ style
+                [ ( "background-color", "white" )
+                ]
+            ]
+            [ div [ onInput (\n -> route (UpdateName n)) ] [ text "name", input [ value bar.name ] [] ]
+            , renderGroupEdit route (barEditGroup (defaultFreshBarEdit bar.edit)) bar.groups
+            , div [ onInput (\n -> route (UpdateStart n)) ]
+                [ text "start"
+                , input
+                    [ placeholder "YYYY-MM-DD"
+                    , bar.startDate
+                        |> dateResultToString
+                        |> Result.withDefault ""
+                        |> defaultValue
                     ]
-                    [ div
-                        [ style
-                            [ ( "background-color", "white" )
-                            ]
-                        ]
-                        [ div [ onInput (\n -> route (UpdateName n)) ] [ text "name", input [ value bar.name ] [] ]
-                        , div [ onInput (\n -> route (UpdateStart n)) ]
-                            [ text "start"
-                            , input
-                                [ placeholder "YYYY-MM-DD"
-                                , bar.startDate
-                                    |> dateResultToString
-                                    |> Result.withDefault ""
-                                    |> defaultValue
-                                ]
-                                []
-                            ]
-                        , div []
-                            [ text "rate"
-                            , input
-                                [ defaultValue ((toString (bar.amountPerTime // 10 ^ bar.precision)) ++ "." ++ (toString (bar.amountPerTime % 10 ^ bar.precision)))
-                                , onInput (\n -> route (UpdateAmount n))
-                                ]
-                                []
-                            , text (bar.currency ++ " per ")
-                            , input
-                                [ placeholder "1d 1h 3m 1s"
-                                , defaultValue (timeToString bar.timePerAmount)
-                                , onInput (\n -> route (UpdateRate n))
-                                ]
-                                []
-                            ]
-                        , div []
-                            [ text "interval"
-                            , input
-                                [ defaultValue (timeToString bar.interval)
-                                , onInput (\n -> route (UpdateInterval n))
-                                ]
-                                []
-                            ]
-                        , div [] [ button [ onClick (route FinishEdit) ] [ text "✓" ] ]
-                        ]
+                    []
+                ]
+            , div []
+                [ text "rate"
+                , input
+                    [ defaultValue ((toString (bar.amountPerTime // 10 ^ bar.precision)) ++ "." ++ (toString (bar.amountPerTime % 10 ^ bar.precision)))
+                    , onInput (\n -> route (UpdateAmount n))
                     ]
+                    []
+                , text (bar.currency ++ " per ")
+                , input
+                    [ placeholder "1d 1h 3m 1s"
+                    , defaultValue (timeToString bar.timePerAmount)
+                    , onInput (\n -> route (UpdateRate n))
+                    ]
+                    []
+                ]
+            , div []
+                [ text "interval"
+                , input
+                    [ defaultValue (timeToString bar.interval)
+                    , onInput (\n -> route (UpdateInterval n))
+                    ]
+                    []
+                ]
+            , button [ onClick (route FinishEdit) ] [ text "✓" ]
+            , button [ onClick (route RemoveBar) ] [ text "♲" ]
+            ]
 
 
-viewBar : (BarMsg -> Msg) -> NativeBar -> Maybe Time -> Html Msg
-viewBar route bar time =
+renderBar : (BarMsg -> Msg) -> NativeBar -> Maybe Time -> Html Msg
+renderBar route bar time =
     let
         ( start, diff ) =
             case bar.startDate of
@@ -251,8 +284,7 @@ viewBar route bar time =
                 diff - toFloat ((floor diff) % (floor interval))
     in
         div []
-            [ viewSettings route bar
-            , div [] [ text <| bar.name ++ " since " ++ start ]
+            [ div [] [ text <| bar.name ++ " since " ++ start ]
             , div []
                 [ div
                     [ style
@@ -279,4 +311,15 @@ viewBar route bar time =
                     ]
                     []
                 ]
+            , button [ onClick (route BeginEdit) ] [ text "⚙" ]
             ]
+
+
+viewBar : (BarMsg -> Msg) -> NativeBar -> Maybe Time -> Html Msg
+viewBar route bar time =
+    case bar.edit of
+        Just _ ->
+            renderSettings route bar
+
+        Nothing ->
+            renderBar route bar time
