@@ -119,7 +119,7 @@ updateBar msg bar =
         RemoveBar ->
             Nothing
 
-        AddGroup ->
+        AddGroup group ->
             case (defaultFreshBarEdit bar.edit).newGroup of
                 "" ->
                     Just bar
@@ -217,9 +217,10 @@ renderGroupEdit route new groups =
             [ placeholder "new group"
             , value new
             , onInput (\n -> route <| UpdateEditGroup n)
-            , onEnter (route AddGroup)
+            , onEnter (route <| AddGroup new)
             ]
             []
+         , button [ onClick (route <| AddGroup new) ] [ text "+" ]
          ]
             ++ (groups
                     |> Set.toList

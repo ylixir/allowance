@@ -181,8 +181,7 @@ type BarMsg
     = BeginEdit
     | FinishEdit
     | RemoveBar
-      -- new group comes from the edit: BarEdit field
-    | AddGroup
+    | AddGroup String
     | UpdateEditGroup String
     | RemoveGroup String
     | UpdateTransactionEdit String
