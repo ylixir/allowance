@@ -80,6 +80,17 @@ barEditGroup { newGroup } =
     newGroup
 
 
+type alias Transactions =
+    { edit : Int
+    , list : List Int
+    }
+
+
+emptyTransactions : Transactions
+emptyTransactions =
+    Transactions 0 []
+
+
 type alias Bar a b =
     { name : String
     , id : Int
@@ -90,6 +101,7 @@ type alias Bar a b =
     , currency : String
     , precision : Int
     , edit : Maybe BarEdit
+    , transactions : Transactions
     , groups : b
     }
 
@@ -104,7 +116,7 @@ type alias JsonBar =
 
 emptyBar : Int -> Bar NativeStartDate (Set String)
 emptyBar id =
-    Bar "" id (Result.Err "uninitialized") 0 0 0 "USD" 2 (Just freshBarEdit) Set.empty
+    Bar "" id (Result.Err "uninitialized") 0 0 0 "USD" 2 (Just freshBarEdit) emptyTransactions Set.empty
 
 
 barToJson : NativeBar -> JsonBar
@@ -135,14 +147,14 @@ testModel =
     Model Nothing
         (List.map
             (\bar -> bar <| Set.singleton "Aidan")
-            [ Bar "Spending" 0 (Date.fromString "2017-03-11") (604800 * second) 0 100 "USD" 2 Nothing
-            , Bar "Saving" 1 (Date.fromString "2017-03-11") (604800 * second) (7 * 24 * hour) 100 "USD" 2 Nothing
-            , Bar "Giving" 2 (Date.fromString "2017-03-11") (604800 * second) (24 * hour) 100 "USD" 2 Nothing
+            [ Bar "Spending" 0 (Date.fromString "2017-03-11") (604800 * second) 0 100 "USD" 2 Nothing emptyTransactions
+            , Bar "Saving" 1 (Date.fromString "2017-03-11") (604800 * second) (7 * 24 * hour) 100 "USD" 2 Nothing emptyTransactions
+            , Bar "Giving" 2 (Date.fromString "2017-03-11") (604800 * second) (24 * hour) 100 "USD" 2 Nothing emptyTransactions
             ]
             ++ List.map (\bar -> bar <| Set.singleton "Val")
-                [ Bar "Spending" 3 (Date.fromString "2017-03-11") (604800 * second) 0 200 "USD" 2 Nothing
-                , Bar "Saving" 4 (Date.fromString "2017-03-11") (604800 * second) (604800 * second) 200 "USD" 2 Nothing
-                , Bar "Giving" 5 (Date.fromString "2017-03-11") (604800 * second) (24 * hour) 200 "USD" 2 Nothing
+                [ Bar "Spending" 3 (Date.fromString "2017-03-11") (604800 * second) 0 200 "USD" 2 Nothing emptyTransactions
+                , Bar "Saving" 4 (Date.fromString "2017-03-11") (604800 * second) (604800 * second) 200 "USD" 2 Nothing emptyTransactions
+                , Bar "Giving" 5 (Date.fromString "2017-03-11") (604800 * second) (24 * hour) 200 "USD" 2 Nothing emptyTransactions
                 ]
         )
         0
@@ -173,6 +185,8 @@ type BarMsg
     | AddGroup
     | UpdateEditGroup String
     | RemoveGroup String
+    | UpdateTransactionEdit String
+    | AddTransaction Int
     | UpdateName String
     | UpdateStart String
     | UpdateAmount String

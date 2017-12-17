@@ -14,6 +14,28 @@ import Json.Decode as Json
 --update
 
 
+currencyToString : Int -> Int -> String
+currencyToString precision amount =
+    (if amount < 0 then
+        "-"
+     else
+        ""
+    )
+        ++ String.join "."
+            [ toString <| (abs amount) // 10 ^ precision
+            , toString <| (abs amount) % 10 ^ precision
+            ]
+
+
+stringToCurrency : Int -> Int -> String -> Int
+stringToCurrency precision default amount =
+    amount
+        |> String.toFloat
+        |> (Result.withDefault <| (toFloat default) / (toFloat <| 10 ^ precision))
+        |> (*) (toFloat (10 ^ precision))
+        |> truncate
+
+
 stringToTime : String -> Time
 stringToTime s =
     (\( t, m ) -> t)
@@ -111,6 +133,22 @@ updateBar msg bar =
         RemoveGroup g ->
             Just { bar | groups = Set.remove g bar.groups }
 
+        UpdateTransactionEdit amount ->
+            Just
+                { bar
+                    | transactions =
+                        Transactions
+                            (stringToCurrency bar.precision bar.transactions.edit amount)
+                            bar.transactions.list
+                }
+
+        AddTransaction t ->
+            let
+                barTrans =
+                    bar.transactions
+            in
+                Just { bar | transactions = { barTrans | list = t :: barTrans.list } }
+
         UpdateName name ->
             Just { bar | name = name }
 
@@ -119,18 +157,7 @@ updateBar msg bar =
 
         UpdateAmount amount ->
             Just
-                { bar
-                    | amountPerTime =
-                        amount
-                            |> String.toFloat
-                            |> Result.withDefault
-                                (bar.amountPerTime
-                                    |> toFloat
-                                    |> (\n -> n / toFloat (10 ^ bar.precision))
-                                )
-                            |> (*) (toFloat (10 ^ bar.precision))
-                            |> truncate
-                }
+                { bar | amountPerTime = stringToCurrency bar.amountPerTime bar.precision amount }
 
         UpdateRate rate ->
             Just { bar | timePerAmount = stringToTime rate }
@@ -234,7 +261,7 @@ renderSettings route bar =
             , div []
                 [ text "rate"
                 , input
-                    [ defaultValue ((toString (bar.amountPerTime // 10 ^ bar.precision)) ++ "." ++ (toString (bar.amountPerTime % 10 ^ bar.precision)))
+                    [ defaultValue <| currencyToString bar.precision bar.amountPerTime
                     , onInput (\n -> route (UpdateAmount n))
                     ]
                     []
@@ -295,10 +322,15 @@ renderBar route bar time =
                         ]
                     ]
                     [ (appliedTime / bar.timePerAmount * toFloat bar.amountPerTime)
+                        |> (\n ->
+                                if (isNaN n) || (isInfinite n) then
+                                    0
+                                else
+                                    n
+                           )
                         |> floor
-                        |> toFloat
-                        |> (\n -> n / toFloat (10 ^ bar.precision))
-                        |> toString
+                        |> (+) (List.sum bar.transactions.list)
+                        |> currencyToString bar.precision
                         |> (\n -> n ++ " USD")
                         |> text
                     ]
@@ -311,7 +343,16 @@ renderBar route bar time =
                     ]
                     []
                 ]
-            , button [ onClick (route BeginEdit) ] [ text "⚙" ]
+            , div []
+                [ button [ onClick (route BeginEdit) ] [ text "⚙" ]
+                , input
+                    [ defaultValue <| currencyToString bar.precision bar.transactions.edit
+                    , onInput (\n -> route <| UpdateTransactionEdit n)
+                    ]
+                    []
+                , button [ onClick (route <| AddTransaction bar.transactions.edit) ] [ text "+" ]
+                , button [ onClick (route <| AddTransaction -bar.transactions.edit) ] [ text "-" ]
+                ]
             ]
 
 
