@@ -333,11 +333,11 @@ renderBar route bar time =
             else
                 diff - toFloat ((floor diff) % (floor interval))
     in
-        div [ classList <| List.map (\c -> ( c, True )) [ "bar__container", "container--comic_border" ] ]
+        div [ classes [ "bar__container", "border" ] ]
             [ div [ class "bar__title" ] [ text <| bar.name ++ " since " ++ start ]
             , div []
                 [ div
-                    [ classList <| List.map (\c -> ( c, True )) [ "bar__value", "container--shadow" ]
+                    [ classes [ "bar__value", "strong" ]
                     ]
                     [ (appliedTime / bar.timePerAmount * toFloat bar.amountPerTime)
                         |> (\n ->
@@ -361,14 +361,17 @@ renderBar route bar time =
             , div
                 [ class "bar__controls"
                 ]
-                [ button [ onClick (route BeginEdit) ] [ text "⚙" ]
+                [ div [ classes [ "button" ], onClick (route BeginEdit) ] [ text "⚙" ]
+                , div [ classes [ "button", "close-right" ], onClick (route <| AddTransaction bar.transactions.edit) ] [ text "+" ]
                 , input
-                    [ value bar.transactions.edit
+                    [ classes [ "input", "close-left", "close-right" ]
+                    , value bar.transactions.edit
+                    , type_ "number"
+                    , placeholder "Add/Remove Money"
                     , onInput (\n -> route <| UpdateTransactionEdit n)
                     ]
                     []
-                , button [ onClick (route <| AddTransaction bar.transactions.edit) ] [ text "+" ]
-                , button [ onClick (route <| SubtractTransaction bar.transactions.edit) ] [ text "-" ]
+                , div [ classes [ "button", "close-left" ], onClick (route <| SubtractTransaction bar.transactions.edit) ] [ text "-" ]
                 ]
             ]
 

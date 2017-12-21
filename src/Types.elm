@@ -3,6 +3,8 @@ module Types exposing (..)
 import Time exposing (Time, hour, second)
 import Date exposing (Date)
 import Set exposing (..)
+import Html exposing (..)
+import Html.Attributes exposing (..)
 
 
 type Indexed a
@@ -192,3 +194,10 @@ type BarMsg
     | UpdateAmount String
     | UpdateRate String
     | UpdateInterval String
+
+
+classes : List String -> Html.Attribute msg
+classes l =
+    l
+        |> (List.map (\c -> ( c, True )))
+        |> classList

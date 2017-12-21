@@ -122,7 +122,7 @@ topLevelStyle =
 view : Model NativeBar -> Html Msg
 view model =
     div [] <|
-        div [ topLevelStyle ] [ button [ onClick AddBar ] [ text "+" ] ]
+        div [ topLevelStyle ] [ div [ classes [ "button" ], onClick AddBar ] [ text "Make new..." ] ]
             :: Dict.foldl
                 (viewGroup model.time)
                 []
@@ -147,8 +147,8 @@ viewBars bars time =
 viewGroup : Maybe Time -> String -> List NativeBar -> List (Html Msg) -> List (Html Msg)
 viewGroup time name bars previous =
     div [ topLevelStyle ]
-        [ div [ classList <| List.map (\c -> ( c, True )) [ "group__container", "container--comic_border" ] ]
-            ((div [ classList <| List.map (\c -> ( c, True )) [ "group__name", "container--shadow" ] ] [ text name ])
+        [ div [ classes [ "group__container", "border" ] ]
+            ((div [ classes [ "group__name", "heading" ] ] [ text name ])
                 :: viewBars bars time
             )
         ]
