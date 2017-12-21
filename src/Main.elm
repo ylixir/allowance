@@ -147,8 +147,8 @@ viewBars bars time =
 viewGroup : Maybe Time -> String -> List NativeBar -> List (Html Msg) -> List (Html Msg)
 viewGroup time name bars previous =
     div [ topLevelStyle ]
-        [ div [ style [ ( "border-style", "groove" ) ] ]
-            ((div [] [ text name ])
+        [ div [ classList <| List.map (\c -> ( c, True )) [ "group__container", "container--comic_border" ] ]
+            ((div [ classList <| List.map (\c -> ( c, True )) [ "group__name", "container--shadow" ] ] [ text name ])
                 :: viewBars bars time
             )
         ]

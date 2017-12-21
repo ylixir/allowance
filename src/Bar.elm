@@ -333,16 +333,11 @@ renderBar route bar time =
             else
                 diff - toFloat ((floor diff) % (floor interval))
     in
-        div []
-            [ div [] [ text <| bar.name ++ " since " ++ start ]
+        div [ classList <| List.map (\c -> ( c, True )) [ "bar__container", "container--comic_border" ] ]
+            [ div [ class "bar__title" ] [ text <| bar.name ++ " since " ++ start ]
             , div []
                 [ div
-                    [ style
-                        [ ( "background-color", "blue" )
-                        , ( "color", "white" )
-                        , ( "width", "100%" )
-                        , ( "height", "1em" )
-                        ]
+                    [ classList <| List.map (\c -> ( c, True )) [ "bar__value", "container--shadow" ]
                     ]
                     [ (appliedTime / bar.timePerAmount * toFloat bar.amountPerTime)
                         |> (\n ->
@@ -356,17 +351,16 @@ renderBar route bar time =
                         |> currencyToString bar.precision
                         |> (\n -> n ++ " USD")
                         |> text
-                    ]
-                , div
-                    [ style
-                        [ ( "background-color", "green" )
-                        , ( "height", "0.2em" )
-                        , ( "width", (toString (100 * (diff - appliedTime) / interval)) ++ "%" )
+                    , div
+                        [ class "bar__timer"
+                        , style [ ( "width", (toString (100 * (diff - appliedTime) / interval)) ++ "%" ) ]
                         ]
+                        []
                     ]
-                    []
                 ]
-            , div []
+            , div
+                [ class "bar__controls"
+                ]
                 [ button [ onClick (route BeginEdit) ] [ text "⚙" ]
                 , input
                     [ value bar.transactions.edit

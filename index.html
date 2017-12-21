@@ -1,14 +1,20 @@
 <!DOCTYPE HTML>
-<meta charset="UTF-8">
-<div>
-    <script src="Main.js"></script>
-    <script>
-        //localStorage.getItem returns null if this doesn't exist while JSON.parse of null returns null
-        var getStoredState = JSON.parse(localStorage.getItem('allowance-model'))
-        var setStoredState = (state) => (localStorage.setItem('allowance-model', JSON.stringify(state)),console.log(state))
+<head>
+    <title>Allowance</title>
+    <link href="default.css" rel="stylesheet">
+    <meta charset="UTF-8">
+</head>
+<body>
+    <div>
+        <script src="Main.js"></script>
+        <script>
+            //localStorage.getItem returns null if this doesn't exist while JSON.parse of null returns null
+            var getStoredState = JSON.parse(localStorage.getItem('allowance-model'))
+            var setStoredState = (state) => (localStorage.setItem('allowance-model', JSON.stringify(state)),console.log(state))
 
-        var app = Elm.Main.fullscreen(getStoredState)
-        app.ports.saveModel.subscribe(setStoredState)
+            var app = Elm.Main.fullscreen(getStoredState)
+            app.ports.saveModel.subscribe(setStoredState)
 
-    </script>
-</div>
+        </script>
+    </div>
+</body>

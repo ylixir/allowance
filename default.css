@@ -1,0 +1,45 @@
+@import url( 'https://fonts.googleapis.com/css?family=Acme' );
+
+body
+    { background-color: #333
+    ; color: orange
+    ; border-color: orange
+    ; font-family: 'Acme', cursive
+    ; }
+
+.group__container
+    { background-color: #444
+    ; }
+.group__name
+    { display: inline-block
+    ; }
+
+.bar__container
+    { border: 1px solid #222
+    ; }
+.bar__title {}
+.bar__value
+    { background-color: orange
+    ; color: #444
+    ; }
+.bar__timer
+    { background-color: orange
+    ; height: 0.2em
+    }
+.bar__controls {}
+
+.container--comic_border
+    { border-style: solid
+    ; border-width: 3px 4px 3px 5px
+    ; border-radius:5px 95px 5px 95px/95px 5px 95px 5px
+    ; padding: 5px
+    ; margin: 5px
+    ; }
+.container--shadow
+    { background-color: #333
+    ; color: orange
+    ; box-shadow: 5px 5px 0 #222
+    ; border: 1px solid #222
+    ; padding: 5px
+    ; margin: 10px
+    }
