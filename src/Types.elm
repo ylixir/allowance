@@ -81,14 +81,14 @@ barEditGroup { newGroup } =
 
 
 type alias Transactions =
-    { edit : Int
+    { edit : String
     , list : List Int
     }
 
 
 emptyTransactions : Transactions
 emptyTransactions =
-    Transactions 0 []
+    Transactions "" []
 
 
 type alias Bar a b =
@@ -185,7 +185,8 @@ type BarMsg
     | UpdateEditGroup String
     | RemoveGroup String
     | UpdateTransactionEdit String
-    | AddTransaction Int
+    | AddTransaction String
+    | SubtractTransaction String
     | UpdateName String
     | UpdateStart String
     | UpdateAmount String

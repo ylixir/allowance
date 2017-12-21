@@ -23,7 +23,7 @@ currencyToString precision amount =
     )
         ++ String.join "."
             [ toString <| (abs amount) // 10 ^ precision
-            , toString <| (abs amount) % 10 ^ precision
+            , String.padLeft 2 '0' <| toString <| (abs amount) % 10 ^ precision
             ]
 
 
@@ -107,6 +107,16 @@ dateToString date =
         (toString (year date)) ++ "-" ++ (dateToMonthString date) ++ "-" ++ (toString (day date))
 
 
+addTransaction : Int -> List Int -> List Int
+addTransaction t l =
+    case t of
+        0 ->
+            l
+
+        _ ->
+            t :: l
+
+
 updateBar : BarMsg -> NativeBar -> Maybe NativeBar
 updateBar msg bar =
     case msg of
@@ -138,7 +148,7 @@ updateBar msg bar =
                 { bar
                     | transactions =
                         Transactions
-                            (stringToCurrency bar.precision bar.transactions.edit amount)
+                            amount
                             bar.transactions.list
                 }
 
@@ -147,7 +157,19 @@ updateBar msg bar =
                 barTrans =
                     bar.transactions
             in
-                Just { bar | transactions = { barTrans | list = t :: barTrans.list } }
+                Just { bar | transactions = { barTrans | list = addTransaction (stringToCurrency bar.precision 0 t) barTrans.list } }
+
+        SubtractTransaction t ->
+            let
+                barTrans =
+                    bar.transactions
+            in
+                case stringToCurrency bar.precision 0 t of
+                    0 ->
+                        Just bar
+
+                    n ->
+                        Just { bar | transactions = { barTrans | list = -n :: barTrans.list } }
 
         UpdateName name ->
             Just { bar | name = name }
@@ -347,12 +369,12 @@ renderBar route bar time =
             , div []
                 [ button [ onClick (route BeginEdit) ] [ text "⚙" ]
                 , input
-                    [ defaultValue <| currencyToString bar.precision bar.transactions.edit
+                    [ value bar.transactions.edit
                     , onInput (\n -> route <| UpdateTransactionEdit n)
                     ]
                     []
                 , button [ onClick (route <| AddTransaction bar.transactions.edit) ] [ text "+" ]
-                , button [ onClick (route <| AddTransaction -bar.transactions.edit) ] [ text "-" ]
+                , button [ onClick (route <| SubtractTransaction bar.transactions.edit) ] [ text "-" ]
                 ]
             ]
 
