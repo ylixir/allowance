@@ -68,15 +68,16 @@ body
     ; padding: 5px 10px
     ; margin: 10px
     ; display: inline-block
-    ; cursor: pointer
     ; font-size: 1.5em
     ; }
 .input[type=number]::-webkit-inner-spin-button
 , .input[type=number]::-webkit-outer-spin-button
     { -webkit-appearance: none
-    ; -moz-appearance:textfield
     ; margin: 0
     ; }
+.input[type=number]
+    { -moz-appearance:textfield
+    }
 
 .close-left
     { margin-left: 0
