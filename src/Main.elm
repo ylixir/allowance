@@ -1,5 +1,10 @@
 port module Main exposing (..)
 
+{-|
+This is the entrypoint for the Entitlements allowance tracking application
+@docs addBarToList, init, main, saveModel, subscriptions, topLevelStyle, update, updateGroupsWithBar, updateWithStorage, view, viewBars, viewGroup
+-}
+
 import Html exposing (..)
 import Html.Events exposing (onClick, onInput, onBlur)
 import Html.Attributes exposing (..)
@@ -11,6 +16,8 @@ import Dict exposing (..)
 import Set exposing (..)
 
 
+{-| Standard main function
+-}
 main : Program (Maybe (Model JsonBar)) (Model NativeBar) Msg
 main =
     Html.programWithFlags
@@ -25,6 +32,8 @@ main =
 -- MODEL
 
 
+{-| Initialize with a saved model from localhost if we have one
+-}
 init : Maybe (Model JsonBar) -> ( Model NativeBar, Cmd Msg )
 init savedModel =
     ( jsonToModel <| Maybe.withDefault (modelToJson emptyModel) savedModel, Task.perform Tick Time.now )
@@ -34,9 +43,14 @@ init savedModel =
 -- UPDATE
 
 
+{-| send the model out to js land to be saved to local storage
+-}
 port saveModel : Model JsonBar -> Cmd msg
 
 
+{-| This is a decorator for the standard update function. It passes the model
+out to a port to be saved to the local storage
+-}
 updateWithStorage : Msg -> Model NativeBar -> ( Model NativeBar, Cmd Msg )
 updateWithStorage msg model =
     let
@@ -56,6 +70,8 @@ updateWithStorage msg model =
                 )
 
 
+{-| Standard update functin
+-}
 update : Msg -> Model NativeBar -> ( Model NativeBar, Cmd Msg )
 update msg model =
     case msg of
@@ -84,6 +100,8 @@ update msg model =
 -- SUBSCRIPTIONS
 
 
+{-| update the model every second so we can keep realtime track of money growth
+-}
 subscriptions : Model NativeBar -> Sub Msg
 subscriptions model =
     --Sub.none
@@ -94,6 +112,8 @@ subscriptions model =
 -- VIEW
 
 
+{-| just push a bar onto a list, hardly deserves it's own function
+-}
 addBarToList : NativeBar -> Maybe (List NativeBar) -> Maybe (List NativeBar)
 addBarToList newBar oldBars =
     case oldBars of
@@ -104,6 +124,10 @@ addBarToList newBar oldBars =
             Just (newBar :: list)
 
 
+{-| Given a dictionary of groups, add a bar to each group in the dict that the
+bar belongs to. If the bar doesn't belong to any groups, add it to the "Orphans"
+group
+-}
 updateGroupsWithBar : NativeBar -> Dict String (List NativeBar) -> Dict String (List NativeBar)
 updateGroupsWithBar bar groups =
     case Set.isEmpty bar.groups of
@@ -114,11 +138,17 @@ updateGroupsWithBar bar groups =
             Set.foldl (\g d -> Dict.update g (addBarToList bar) d) groups bar.groups
 
 
+{-| deprecated, this should be moved to css for now, something better later
+-}
 topLevelStyle : Attribute msg
 topLevelStyle =
     style [ ( "margin", "0.5em" ) ]
 
 
+{-| standard view function
+We go about this by looping through the set of bars, and putting each bar
+into one or more group buckets. We then display each group.
+-}
 view : Model NativeBar -> Html Msg
 view model =
     div [] <|
@@ -133,6 +163,9 @@ view model =
                 )
 
 
+{-| This just takes a list of bar data structures and transforms it into a list
+of rendered html bars
+-}
 viewBars : List NativeBar -> Maybe Time -> List (Html Msg)
 viewBars bars time =
     List.map
@@ -144,6 +177,8 @@ viewBars bars time =
         bars
 
 
+{-| dump out the list of bars rendered by @viewBar
+-}
 viewGroup : Maybe Time -> String -> List NativeBar -> List (Html Msg) -> List (Html Msg)
 viewGroup time name bars previous =
     div [ topLevelStyle ]
