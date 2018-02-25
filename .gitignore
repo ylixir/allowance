@@ -4,3 +4,8 @@ Main.js
 
 documentation.json
 docs.html
+
+node_modules
+yarn.lock
+yarn-error.log
+

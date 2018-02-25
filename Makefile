@@ -5,10 +5,11 @@ debug: app docs
 
 release: app docs
 
-ELM = elm-make $(ELMFLAGS)
+ELM = yarn elm-make $(ELMFLAGS)
 
 clean:
-	rm -f *.js docs.json # -f suppresses missing file errors
+	# -f suppresses missing file errors
+	rm -f *.js docs.json docs.html
 
 app: Main.js index.html
 
