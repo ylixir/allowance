@@ -17,6 +17,8 @@ import Set exposing (..)
 
 
 {-| Standard main function
+    --comment
+    main blerg
 -}
 main : Program (Maybe (Model JsonBar)) (Model NativeBar) Msg
 main =
