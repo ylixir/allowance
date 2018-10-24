@@ -5,7 +5,7 @@ debug: app docs
 
 release: app docs
 
-ELM = yarn elm-make $(ELMFLAGS)
+ELM = elm make $(ELMFLAGS)
 
 clean:
 	# -f suppresses missing file errors
