@@ -1,24 +1,25 @@
-port module Main exposing (..)
+port module Main exposing (addBarToList, init, main, saveModel, subscriptions, topLevelStyle, update, updateGroupsWithBar, updateWithStorage, view, viewBars, viewGroup)
 
-{-|
-This is the entrypoint for the Entitlements allowance tracking application
+{-| This is the entrypoint for the Entitlements allowance tracking application
+
 @docs addBarToList, init, main, saveModel, subscriptions, topLevelStyle, update, updateGroupsWithBar, updateWithStorage, view, viewBars, viewGroup
+
 -}
 
-import Html exposing (..)
-import Html.Events exposing (onClick, onInput, onBlur)
-import Html.Attributes exposing (..)
-import Task exposing (perform)
 import Bar exposing (..)
-import Time exposing (Time, hour, second)
-import Types exposing (..)
 import Dict exposing (..)
+import Html exposing (..)
+import Html.Attributes exposing (..)
+import Html.Events exposing (onBlur, onClick, onInput)
 import Set exposing (..)
+import Task exposing (perform)
+import Time
+import Types exposing (..)
 
 
 {-| Standard main function
-    --comment
-    main blerg
+--comment
+main blerg
 -}
 main : Program (Maybe (Model JsonBar)) (Model NativeBar) Msg
 main =
@@ -59,17 +60,17 @@ updateWithStorage msg model =
         ( newModel, cmds ) =
             update msg model
     in
-        case msg of
-            Tick time ->
-                ( newModel, cmds )
+    case msg of
+        Tick time ->
+            ( newModel, cmds )
 
-            _ ->
-                ( newModel
-                , Cmd.batch
-                    [ cmds
-                    , (saveModel (modelToJson newModel))
-                    ]
-                )
+        _ ->
+            ( newModel
+            , Cmd.batch
+                [ cmds
+                , saveModel (modelToJson newModel)
+                ]
+            )
 
 
 {-| Standard update functin
@@ -81,7 +82,7 @@ update msg model =
             { model | time = Just time } ! []
 
         AddBar ->
-            { model | bars = (emptyBar model.uuid) :: model.bars, uuid = model.uuid + 1 } ! []
+            { model | bars = emptyBar model.uuid :: model.bars, uuid = model.uuid + 1 } ! []
 
         UpdateBar barId msg ->
             { model
@@ -90,6 +91,7 @@ update msg model =
                         (\b ->
                             if b.id == barId then
                                 updateBar msg b
+
                             else
                                 Just b
                         )
@@ -185,7 +187,7 @@ viewGroup : Maybe Time -> String -> List NativeBar -> List (Html Msg) -> List (H
 viewGroup time name bars previous =
     div [ topLevelStyle ]
         [ div [ classes [ "group__container", "border" ] ]
-            ((div [ classes [ "group__name", "heading" ] ] [ text name ])
+            (div [ classes [ "group__name", "heading" ] ] [ text name ]
                 :: viewBars bars time
             )
         ]

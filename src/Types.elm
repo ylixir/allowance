@@ -1,10 +1,11 @@
-module Types exposing (..)
+module Types exposing (Bar, BarEdit, BarMsg(..), Indexed(..), JsonBar, JsonStartDate, Model, Msg(..), NativeBar, NativeStartDate, Transactions, barEditGroup, barToJson, classes, dateToJson, defaultFreshBarEdit, emptyBar, emptyModel, emptyTransactions, freshBarEdit, indexedList, jsonToBar, jsonToDate, jsonToModel, listIndices, modelToJson, testModel)
 
-import Time exposing (Time, hour, second)
-import Date exposing (Date)
-import Set exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Iso8601
+import Set exposing (..)
+import Time exposing (Posix)
+import TimeUnits exposing (hour, second)
 
 
 type Indexed a
@@ -30,7 +31,7 @@ type alias JsonStartDate =
 
 
 type alias NativeStartDate =
-    Result String Date
+    Result String Posix
 
 
 dateToJson : NativeStartDate -> JsonStartDate
@@ -38,7 +39,7 @@ dateToJson dateResult =
     case dateResult of
         Ok date ->
             { ok = True
-            , string = date |> Date.toTime |> toString
+            , string = date |> Time.posixToMillis |> String.fromInt
             }
 
         Err string ->
@@ -51,12 +52,12 @@ jsonToDate : JsonStartDate -> NativeStartDate
 jsonToDate json =
     case json.ok of
         True ->
-            case json.string |> String.toFloat of
-                Ok val ->
-                    Result.Ok <| Date.fromTime val
+            case json.string |> String.toInt of
+                Just val ->
+                    Result.Ok <| Time.millisToPosix val
 
-                Err msg ->
-                    Result.Err msg
+                Nothing ->
+                    Result.Err ("Couldn't convert " ++ json.string ++ " to integer.")
 
         False ->
             Result.Err json.string
@@ -93,46 +94,60 @@ emptyTransactions =
     Transactions "" []
 
 
-type alias Bar a b =
+type alias Bar =
     { name : String
     , id : Int
-    , startDate : a
-    , timePerAmount : Time
-    , interval : Time
+    , timePerAmount : Posix
+    , interval : Posix
     , amountPerTime : Int
     , currency : String
     , precision : Int
     , edit : Maybe BarEdit
     , transactions : Transactions
+    }
+
+
+type alias SlottedBar a b =
+    { startDate : a
     , groups : b
+    , bar : Bar
     }
 
 
 type alias NativeBar =
-    Bar NativeStartDate (Set String)
+    SlottedBar NativeStartDate (Set String)
 
 
 type alias JsonBar =
-    Bar JsonStartDate (List String)
+    SlottedBar JsonStartDate (List String)
 
 
-emptyBar : Int -> Bar NativeStartDate (Set String)
+emptyBar : Int -> NativeBar
 emptyBar id =
-    Bar "" id (Result.Err "uninitialized") 0 0 0 "USD" 2 (Just freshBarEdit) emptyTransactions Set.empty
+    { startDate = (Result.Err "uninitialized")
+    , groups = Set.empty
+    , bar = Bar "" id 0 0 0 "USD" 2 (Just freshBarEdit) emptyTransactions
+    }
 
 
 barToJson : NativeBar -> JsonBar
 barToJson bar =
-    { bar | groups = (Set.toList bar.groups), startDate = dateToJson bar.startDate }
+    { startDate = (dateToJson bar.startDate)
+    , groups = (Set.toList bar.groups)
+    , bar = bar.bar
+    }
 
 
 jsonToBar : JsonBar -> NativeBar
 jsonToBar bar =
-    { bar | groups = Set.fromList bar.groups, startDate = jsonToDate bar.startDate }
+    { startDate = (jsonToDate bar.startDate)
+    , groups = (Set.fromList bar.groups)
+    , bar = bar.bar
+    }
 
 
 type alias Model a =
-    { time : Maybe Time
+    { time : Maybe Posix
     , bars : List a
     , version : Int
     , uuid : Int
@@ -148,15 +163,27 @@ testModel : Model NativeBar
 testModel =
     Model Nothing
         (List.map
-            (\bar -> bar <| Set.singleton "Aidan")
-            [ Bar "Spending" 0 (Date.fromString "2017-03-11") (604800 * second) 0 100 "USD" 2 Nothing emptyTransactions
-            , Bar "Saving" 1 (Date.fromString "2017-03-11") (604800 * second) (7 * 24 * hour) 100 "USD" 2 Nothing emptyTransactions
-            , Bar "Giving" 2 (Date.fromString "2017-03-11") (604800 * second) (24 * hour) 100 "USD" 2 Nothing emptyTransactions
+            ( \bar -> { bar | groups = Set.singleton "Aidan" } )
+            [ { bar = Bar "Spending" 0 (604800 * second) 0 100 "USD" 2 Nothing emptyTransactions
+              , startDate = Iso8601.toTime "2017-03-11"
+              }
+            , { bar = Bar "Saving" 1 (604800 * second) (7 * 24 * hour) 100 "USD" 2 Nothing emptyTransactions
+              , startDate = Iso8601.toTime "2017-03-11"
+              }
+            , { bar = Bar "Giving" 2 (604800 * second) (24 * hour) 100 "USD" 2 Nothing emptyTransactions
+              , startDate = Iso8601.toTime "2017-03-11"
+              }
             ]
-            ++ List.map (\bar -> bar <| Set.singleton "Val")
-                [ Bar "Spending" 3 (Date.fromString "2017-03-11") (604800 * second) 0 200 "USD" 2 Nothing emptyTransactions
-                , Bar "Saving" 4 (Date.fromString "2017-03-11") (604800 * second) (604800 * second) 200 "USD" 2 Nothing emptyTransactions
-                , Bar "Giving" 5 (Date.fromString "2017-03-11") (604800 * second) (24 * hour) 200 "USD" 2 Nothing emptyTransactions
+            ++ List.map (\bar -> {bar | groups = Set.singleton "Val"})
+                [ { bar = Bar "Spending" 3 (604800 * second) 0 200 "USD" 2 Nothing emptyTransactions
+                  , startDate = Iso8601.toTime "2017-03-11"
+                  }
+                , { bar = Bar "Saving" 4 (604800 * second) (604800 * second) 200 "USD" 2 Nothing emptyTransactions
+                  , startDate = Iso8601.toTime "2017-03-11"
+                  }
+                , { bar = Bar "Giving" 5 (604800 * second) (24 * hour) 200 "USD" 2 Nothing emptyTransactions
+                  , startDate = Iso8601.toTime "2017-03-11"
+                  }
                 ]
         )
         0
@@ -174,7 +201,7 @@ jsonToModel model =
 
 
 type Msg
-    = Tick Time
+    = Tick Posix
     | AddBar
     | UpdateBar Int BarMsg
 
@@ -199,5 +226,5 @@ type BarMsg
 classes : List String -> Html.Attribute msg
 classes l =
     l
-        |> (List.map (\c -> ( c, True )))
+        |> List.map (\c -> ( c, True ))
         |> classList

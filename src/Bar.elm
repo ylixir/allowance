@@ -1,13 +1,13 @@
-module Bar exposing (..)
+module Bar exposing (addTransaction, currencyToString, dateToString, onEnter, renderBar, renderGroupEdit, renderSettings, stringToCurrency, stringToTime, timeToString, updateBar, viewBar)
 
-import Types exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import Time exposing (..)
-import Date exposing (..)
-import Set exposing (..)
 import Json.Decode as Json
+import Set exposing (..)
+import Time exposing (..)
+import Types exposing (..)
+
 
 
 --model
@@ -18,12 +18,13 @@ currencyToString : Int -> Int -> String
 currencyToString precision amount =
     (if amount < 0 then
         "-"
+
      else
         ""
     )
         ++ String.join "."
-            [ toString <| (abs amount) // 10 ^ precision
-            , String.padLeft 2 '0' <| toString <| (abs amount) % 10 ^ precision
+            [ toString <| abs amount // 10 ^ precision
+            , String.padLeft 2 '0' <| toString <| abs amount % 10 ^ precision
             ]
 
 
@@ -31,7 +32,7 @@ stringToCurrency : Int -> Int -> String -> Int
 stringToCurrency precision default amount =
     amount
         |> String.toFloat
-        |> (Result.withDefault <| (toFloat default) / (toFloat <| 10 ^ precision))
+        |> (Result.withDefault <| toFloat default / (toFloat <| 10 ^ precision))
         |> (*) (toFloat (10 ^ precision))
         |> truncate
 
@@ -55,56 +56,56 @@ stringToTime s =
                         ( t, Time.second )
 
                     _ ->
-                        ( t + (Result.withDefault 0 (String.toFloat (String.fromChar c))) * m, m * 10 )
+                        ( t + Result.withDefault 0 (String.toFloat (String.fromChar c)) * m, m * 10 )
             )
             ( 0, 0 )
             (String.toLower s)
         )
 
 
-dateToString : Date -> String
+dateToString : Time -> String
 dateToString date =
     let
-        dateToMonthString : Date -> String
+        dateToMonthString : Time -> String
         dateToMonthString date =
-            case (month date) of
-                Date.Jan ->
+            case month date of
+                Time.Jan ->
                     "01"
 
-                Date.Feb ->
+                Time.Feb ->
                     "02"
 
-                Date.Mar ->
+                Time.Mar ->
                     "03"
 
-                Date.Apr ->
+                Time.Apr ->
                     "04"
 
-                Date.May ->
+                Time.May ->
                     "05"
 
-                Date.Jun ->
+                Time.Jun ->
                     "06"
 
-                Date.Jul ->
+                Time.Jul ->
                     "07"
 
-                Date.Aug ->
+                Time.Aug ->
                     "08"
 
-                Date.Sep ->
+                Time.Sep ->
                     "09"
 
-                Date.Oct ->
+                Time.Oct ->
                     "10"
 
-                Date.Nov ->
+                Time.Nov ->
                     "11"
 
-                Date.Dec ->
+                Time.Dec ->
                     "12"
     in
-        (toString (year date)) ++ "-" ++ (dateToMonthString date) ++ "-" ++ (toString (day date))
+    toString (year date) ++ "-" ++ dateToMonthString date ++ "-" ++ toString (day date)
 
 
 addTransaction : Int -> List Int -> List Int
@@ -157,19 +158,19 @@ updateBar msg bar =
                 barTrans =
                     bar.transactions
             in
-                Just { bar | transactions = { barTrans | list = addTransaction (stringToCurrency bar.precision 0 t) barTrans.list } }
+            Just { bar | transactions = { barTrans | list = addTransaction (stringToCurrency bar.precision 0 t) barTrans.list } }
 
         SubtractTransaction t ->
             let
                 barTrans =
                     bar.transactions
             in
-                case stringToCurrency bar.precision 0 t of
-                    0 ->
-                        Just bar
+            case stringToCurrency bar.precision 0 t of
+                0 ->
+                    Just bar
 
-                    n ->
-                        Just { bar | transactions = { barTrans | list = -n :: barTrans.list } }
+                n ->
+                    Just { bar | transactions = { barTrans | list = -n :: barTrans.list } }
 
         UpdateName name ->
             Just { bar | name = name }
@@ -200,22 +201,22 @@ timeToString time =
                 |> Time.inHours
                 |> (\n -> n / 24)
                 |> truncate
-                |> (\n -> (toString n) ++ "d")
+                |> (\n -> toString n ++ "d")
             , time
                 |> Time.inHours
                 |> truncate
                 |> (\n -> n % 24)
-                |> (\n -> (toString n) ++ "h")
+                |> (\n -> toString n ++ "h")
             , time
                 |> Time.inMinutes
                 |> truncate
                 |> (\n -> n % 60)
-                |> (\n -> (toString n) ++ "m")
+                |> (\n -> toString n ++ "m")
             , time
                 |> Time.inSeconds
                 |> truncate
                 |> (\n -> n % 60)
-                |> (\n -> (toString n) ++ "s")
+                |> (\n -> toString n ++ "s")
             ]
 
 
@@ -225,10 +226,11 @@ onEnter msg =
         isEnter code =
             if code == 13 then
                 Json.succeed msg
+
             else
                 Json.fail "not Enter"
     in
-        on "keyup" (Json.andThen isEnter keyCode)
+    on "keyup" (Json.andThen isEnter keyCode)
 
 
 renderGroupEdit : (BarMsg -> Msg) -> String -> Set String -> Html Msg
@@ -254,7 +256,7 @@ renderGroupEdit route new groups =
 renderSettings : (BarMsg -> Msg) -> NativeBar -> Html Msg
 renderSettings route bar =
     let
-        dateResultToString : Result String Date -> Result String String
+        dateResultToString : Result String Time -> Result String String
         dateResultToString date =
             case date of
                 Ok date ->
@@ -263,50 +265,50 @@ renderSettings route bar =
                 Err msg ->
                     Err ""
     in
-        div
-            [ style
-                [ ( "background-color", "white" )
-                ]
+    div
+        [ style
+            [ ( "background-color", "white" )
             ]
-            [ div [ onInput (\n -> route (UpdateName n)) ] [ text "name", input [ value bar.name ] [] ]
-            , renderGroupEdit route (barEditGroup (defaultFreshBarEdit bar.edit)) bar.groups
-            , div [ onInput (\n -> route (UpdateStart n)) ]
-                [ text "start"
-                , input
-                    [ placeholder "YYYY-MM-DD"
-                    , bar.startDate
-                        |> dateResultToString
-                        |> Result.withDefault ""
-                        |> defaultValue
-                    ]
-                    []
+        ]
+        [ div [ onInput (\n -> route (UpdateName n)) ] [ text "name", input [ value bar.name ] [] ]
+        , renderGroupEdit route (barEditGroup (defaultFreshBarEdit bar.edit)) bar.groups
+        , div [ onInput (\n -> route (UpdateStart n)) ]
+            [ text "start"
+            , input
+                [ placeholder "YYYY-MM-DD"
+                , bar.startDate
+                    |> dateResultToString
+                    |> Result.withDefault ""
+                    |> defaultValue
                 ]
-            , div []
-                [ text "rate"
-                , input
-                    [ defaultValue <| currencyToString bar.precision bar.amountPerTime
-                    , onInput (\n -> route (UpdateAmount n))
-                    ]
-                    []
-                , text (bar.currency ++ " per ")
-                , input
-                    [ placeholder "1d 1h 3m 1s"
-                    , defaultValue (timeToString bar.timePerAmount)
-                    , onInput (\n -> route (UpdateRate n))
-                    ]
-                    []
-                ]
-            , div []
-                [ text "interval"
-                , input
-                    [ defaultValue (timeToString bar.interval)
-                    , onInput (\n -> route (UpdateInterval n))
-                    ]
-                    []
-                ]
-            , button [ onClick (route FinishEdit) ] [ text "✓" ]
-            , button [ onClick (route RemoveBar) ] [ text "♲" ]
+                []
             ]
+        , div []
+            [ text "rate"
+            , input
+                [ defaultValue <| currencyToString bar.precision bar.amountPerTime
+                , onInput (\n -> route (UpdateAmount n))
+                ]
+                []
+            , text (bar.currency ++ " per ")
+            , input
+                [ placeholder "1d 1h 3m 1s"
+                , defaultValue (timeToString bar.timePerAmount)
+                , onInput (\n -> route (UpdateRate n))
+                ]
+                []
+            ]
+        , div []
+            [ text "interval"
+            , input
+                [ defaultValue (timeToString bar.interval)
+                , onInput (\n -> route (UpdateInterval n))
+                ]
+                []
+            ]
+        , button [ onClick (route FinishEdit) ] [ text "✓" ]
+        , button [ onClick (route RemoveBar) ] [ text "♲" ]
+        ]
 
 
 renderBar : (BarMsg -> Msg) -> NativeBar -> Maybe Time -> Html Msg
@@ -315,7 +317,7 @@ renderBar route bar time =
         ( start, diff ) =
             case bar.startDate of
                 Ok date ->
-                    ( toString date, (Maybe.withDefault 0 time) - (toTime date) )
+                    ( toString date, Maybe.withDefault 0 time - toTime date )
 
                 Err message ->
                     ( message, 0 )
@@ -324,56 +326,59 @@ renderBar route bar time =
             if (bar.interval == 0) && (bar.amountPerTime /= 0) then
                 --make interval the time for one cent
                 bar.timePerAmount / toFloat bar.amountPerTime
+
             else
                 bar.interval
 
         appliedTime =
-            if (floor interval) == 0 then
+            if floor interval == 0 then
                 diff
+
             else
-                diff - toFloat ((floor diff) % (floor interval))
+                diff - toFloat (floor diff % floor interval)
     in
-        div [ classes [ "bar__container", "border" ] ]
-            [ div [ class "bar__title" ] [ text <| bar.name ++ " since " ++ start ]
-            , div []
-                [ div
-                    [ classes [ "bar__value", "strong" ]
-                    ]
-                    [ (appliedTime / bar.timePerAmount * toFloat bar.amountPerTime)
-                        |> (\n ->
-                                if (isNaN n) || (isInfinite n) then
-                                    0
-                                else
-                                    n
-                           )
-                        |> floor
-                        |> (+) (List.sum bar.transactions.list)
-                        |> currencyToString bar.precision
-                        |> (\n -> n ++ " USD")
-                        |> text
-                    , div
-                        [ class "bar__timer"
-                        , style [ ( "width", (toString (100 * (diff - appliedTime) / interval)) ++ "%" ) ]
-                        ]
-                        []
-                    ]
+    div [ classes [ "bar__container", "border" ] ]
+        [ div [ class "bar__title" ] [ text <| bar.name ++ " since " ++ start ]
+        , div []
+            [ div
+                [ classes [ "bar__value", "strong" ]
                 ]
-            , div
-                [ class "bar__controls"
-                ]
-                [ div [ classes [ "button" ], onClick (route BeginEdit) ] [ text "⚙" ]
-                , div [ classes [ "button", "close-right" ], onClick (route <| AddTransaction bar.transactions.edit) ] [ text "+" ]
-                , input
-                    [ classes [ "input", "close-left", "close-right" ]
-                    , value bar.transactions.edit
-                    , type_ "number"
-                    , placeholder "Add/Remove Money"
-                    , onInput (\n -> route <| UpdateTransactionEdit n)
+                [ (appliedTime / bar.timePerAmount * toFloat bar.amountPerTime)
+                    |> (\n ->
+                            if isNaN n || isInfinite n then
+                                0
+
+                            else
+                                n
+                       )
+                    |> floor
+                    |> (+) (List.sum bar.transactions.list)
+                    |> currencyToString bar.precision
+                    |> (\n -> n ++ " USD")
+                    |> text
+                , div
+                    [ class "bar__timer"
+                    , style [ ( "width", toString (100 * (diff - appliedTime) / interval) ++ "%" ) ]
                     ]
                     []
-                , div [ classes [ "button", "close-left" ], onClick (route <| SubtractTransaction bar.transactions.edit) ] [ text "-" ]
                 ]
             ]
+        , div
+            [ class "bar__controls"
+            ]
+            [ div [ classes [ "button" ], onClick (route BeginEdit) ] [ text "⚙" ]
+            , div [ classes [ "button", "close-right" ], onClick (route <| AddTransaction bar.transactions.edit) ] [ text "+" ]
+            , input
+                [ classes [ "input", "close-left", "close-right" ]
+                , value bar.transactions.edit
+                , type_ "number"
+                , placeholder "Add/Remove Money"
+                , onInput (\n -> route <| UpdateTransactionEdit n)
+                ]
+                []
+            , div [ classes [ "button", "close-left" ], onClick (route <| SubtractTransaction bar.transactions.edit) ] [ text "-" ]
+            ]
+        ]
 
 
 viewBar : (BarMsg -> Msg) -> NativeBar -> Maybe Time -> Html Msg

@@ -1,13 +1,15 @@
 module Main exposing (main)
 
 {-| The entrypoint for our documentation
+
 @docs main
+
 -}
 
+import Elm.Documentation as Docs
 import Html exposing (..)
 import Http
 import Json.Decode as Decode
-import Elm.Documentation as Docs
 
 
 {-| -}
